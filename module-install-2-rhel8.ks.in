@@ -1,0 +1,61 @@
+#test name: module-install
+#
+# generic module install test:
+# - enable one module (different one this time)
+# - install a second module (different one this time)
+
+%ksappend repos/default.ks
+%ksappend common/common_no_payload.ks
+
+module --name=swig --stream=3.0
+
+%packages
+@nodejs:10/common
+kernel
+vim
+%end
+
+%post
+# modules have some packages defined as their API in their profiles,
+# we can check for those to be (or not to be installed) to see if the
+# module has (or has not) been installed
+
+# the vim standalone package
+rpm -q vim-minimal
+if [[ $? != 0 ]]; then
+    echo '*** vim-minimal package requested but not installed' >> /root/RESULT
+fi
+
+# it is also nice to have kernel
+rpm -q kernel
+if [[ $? != 0 ]]; then
+    echo '*** kernel package not installed' >> /root/RESULT
+fi
+
+# check the nodejs profile specified packages are installed
+rpm -q nodejs
+if [[ $? != 0 ]]; then
+    echo '*** nodejs package for nodejs module not installed' >> /root/RESULT
+fi
+rpm -q npm
+if [[ $? != 0 ]]; then
+    echo '*** npm package for nodejs module not installed' >> /root/RESULT
+fi
+
+# the swig module is just enabled, no packages should be installed from it
+# (as long as we make sure nothing else drags them in)
+rpm -q swig
+if [[ $? == 0 ]]; then
+    echo '*** package swig installed from swing module, but module should be just enabled' >> /root/RESULT
+fi
+
+# next we will check if the module is seen as enabled/installed from the
+# metadata/DNF point of view
+
+dnf module list --enabled nodejs | grep nodejs || echo "*** nodejs module not marked as enabled" >> /root/RESULT
+dnf module list --installed nodejs | grep nodejs || echo "*** nodejs module not marked as installed" >> /root/RESULT
+dnf module list --enabled swig | grep swig || echo "*** swig module not marked as enabled" >> /root/RESULT
+
+%ksappend validation/success_if_result_empty.ks
+
+%end

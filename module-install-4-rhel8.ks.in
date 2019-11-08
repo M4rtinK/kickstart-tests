@@ -1,0 +1,87 @@
+#test name: module-install
+#
+# generic module install test:
+# - enable one module with a stream
+# - install the same module with the same stream
+#
+# This differs from module-install-3 by using a different module.
+
+%ksappend repos/default.ks
+%ksappend common/common_no_payload.ks
+
+module --name=nginnx --stream=common
+
+%packages
+@^Fedora Server Edition
+@nginx:1.14/common
+kernel
+vim
+%end
+
+%post
+# modules have some packages defined as their API in their profiles,
+# we can check for those to be (or not to be installed) to see if the
+# module has (or has not) been installed
+
+# the vim standalone package
+rpm -q vim-minimal
+if [[ $? != 0 ]]; then
+    echo '*** vim-minimal package requested but not installed' >> /root/RESULT
+fi
+
+# it is also nice to have kernel
+rpm -q kernel
+if [[ $? != 0 ]]; then
+    echo '*** kernel package not installed' >> /root/RESULT
+fi
+
+rpm -q nginx
+if [[ $? != 0 ]]; then
+    echo '*** nginx package for nginx module not installed' >> /root/RESULT
+fi
+
+rpm -q nginx-all-modules
+if [[ $? != 0 ]]; then
+    echo '*** nginx-all-modules package for nginx module not installed' >> /root/RESULT
+fi
+
+rpm -q nginx-filesystem
+if [[ $? != 0 ]]; then
+    echo '*** nginx-filesystem package for nginx module profile common not installed' >> /root/RESULT
+fi
+
+rpm -q nginx-mod-http-image-filter
+if [[ $? != 0 ]]; then
+    echo '*** nginx-mod-http-image-filter package for nginx module profile common not installed' >> /root/RESULT
+fi
+
+rpm -q nginx-mod-http-perl
+if [[ $? != 0 ]]; then
+    echo '***nginx-mod-http-perl package for nginx module profile common not installed' >> /root/RESULT
+fi
+
+rpm -q nginx-mod-http-xslt-filter
+if [[ $? != 0 ]]; then
+    echo '***nginx-mod-http-xslt-filter package for nginx module profile common not installed' >> /root/RESULT
+fi
+
+rpm -q nginx-mod-mail
+if [[ $? != 0 ]]; then
+    echo '*** nginx-mod-mail package for nginx module profile common not installed' >> /root/RESULT
+fi
+
+rpm -q nginx-mod-stream
+if [[ $? != 0 ]]; then
+    echo '*** nginx-mod-stream module profile common not installed' >> /root/RESULT
+fi
+
+# next we will check if the module is seen as enabled/installed from the
+# metadata/DNF point of view
+dnf module list --enabled nginx | grep nginx || echo "*** nginx module not marked as enabled" >> /root/RESULT
+dnf module list --installed nginx | grep nginx || echo "*** nginx module not marked as installed" >> /root/RESULT
+
+dnf module list --installed nginx | grep "common \[i\]" || echo "*** nginx module common profile not marked as installed" >> /root/RESULT
+
+%ksappend validation/success_if_result_empty.ks
+
+%end
