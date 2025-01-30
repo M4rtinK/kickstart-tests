@@ -8,6 +8,8 @@
 %packages --default
 %end
 
+%ksappend debug/resolv_conf.ks
+
 %post
 
 # Check that there is any environment installed
